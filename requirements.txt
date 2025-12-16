@@ -1,0 +1,10 @@
+streamlit
+numpy
+pandas
+scipy
+python-docx
+reportlab
+openpyxl
+xlsxwriter
+matplotlib
+pydeck
