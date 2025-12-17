@@ -80,17 +80,22 @@ if page == "Overhead Line Calculator":
         if st.button("Compute Impedance"):
             df = load_basic_db()
             row = df[df["Name"] == conductor_type].iloc[0]
-
+            
             Z1, Z0, B1, B0 = compute_overhead_impedance(
-                r_ac=row["R_AC_ohm_per_km"],
-                gmr=row["GMR_m"],
-                diameter=row["Diameter_m"],
-                Dab=Dab, Dbc=Dbc, Dca=Dca,
-                ha=ha, hb=hb, hc=hc,
-                rho=rho,
-                length=length_value,
-                unit=length_unit
+            r_ac_km=row["R_AC_ohm_per_km"],
+            gmr_m=row["GMR_m"],
+            diameter_m=row["Diameter_m"],
+            Dab=Dab,
+            Dbc=Dbc,
+            Dca=Dca,
+            ha=ha,
+            hb=hb,
+            hc=hc,
+            rho=rho,
+            length=length_value,
+            unit=length_unit
             )
+
 
             st.subheader("Results (Ohms & Per-Unit)")
 
