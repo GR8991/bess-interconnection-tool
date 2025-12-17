@@ -1,143 +1,135 @@
 import numpy as np
 
 # ================================================================
-# CONSTANTS
+# CONSTANTS (IEEE STANDARD CARSON CONSTANTS)
 # ================================================================
-MU0 = 4 * np.pi * 1e-7               # Permeability of free space (H/m)
-EPS0 = 8.854e-12                     # Permittivity of free space (F/m)
-FREQ = 60                            # Frequency (Hz)
+MU0 = 4 * np.pi * 1e-7
+FREQ = 60
 OMEGA = 2 * np.pi * FREQ
+
+# Carson constant (for feet units)
+CARSON_K = 0.12134     # ohm per mile
 
 
 # ================================================================
 # UNIT CONVERSION
 # ================================================================
-def convert_length_to_meters(length, unit):
-    """Convert line length to meters."""
-    if unit.lower() == "mile":
-        return length * 1609.34
-    if unit.lower() == "km":
-        return length * 1000
-    return length
+def meter_to_feet(x):
+    return x * 3.28084
+
+def km_to_mile(x):
+    return x * 0.621371
+
+def ohm_km_to_ohm_mile(r):
+    return r / 1.60934
 
 
 # ================================================================
-# CARSON SELF & MUTUAL IMPEDANCE FUNCTIONS (Correct Form)
+# CORRECT CARSON SELF-IMPEDANCE (FEET)
 # ================================================================
-def Z_self(r_ac_per_m, gmr_m, height_m, rho):
-    """
-    Carson self-impedance per meter.
-    """
-    # Earth-return correction
-    k = (1 + 1j) * 1e-6 * np.sqrt(OMEGA * MU0 / (2 * rho))
-
-    return (
-        r_ac_per_m
-        + 1j * OMEGA * MU0 / (2 * np.pi)
-        * (np.log(2 * height_m / gmr_m) + k)
-    )
-
-
-def Z_mutual(D_m, h1, h2, rho):
-    """
-    Carson mutual impedance per meter.
-    """
-    # Earth-return correction
-    k = (1 + 1j) * 1e-6 * np.sqrt(OMEGA * MU0 / (2 * rho))
-
-    De = np.sqrt(D_m**2 + (h1 + h2)**2)
-
-    return (
-        1j * OMEGA * MU0 / (2 * np.pi)
-        * (np.log(De / D_m) + k)
-    )
+def carson_self_impedance(r_ac_mile, gmr_ft, height_ft):
+    Ds = (2 * height_ft) / gmr_ft
+    Zs = r_ac_mile + 1j * CARSON_K * (np.log(Ds) + 7.934)
+    return Zs
 
 
 # ================================================================
-# OVERHEAD LINE IMPEDANCE (Correct Carson Implementation)
+# CORRECT CARSON MUTUAL IMPEDANCE (FEET)
+# ================================================================
+def carson_mutual_impedance(dist_ft, h1_ft, h2_ft):
+    De = np.sqrt(dist_ft**2 + (h1_ft + h2_ft)**2)
+    Zm = 1j * CARSON_K * (np.log(De / dist_ft) + 7.934)
+    return Zm
+
+
+# ================================================================
+# MAIN FUNCTION (OVERHEAD LINE)
 # ================================================================
 def compute_overhead_impedance(
     r_ac_km, gmr_m, diameter_m,
-    Dab, Dbc, Dca,
-    ha, hb, hc,
-    rho,
+    Dab_m, Dbc_m, Dca_m,
+    ha_m, hb_m, hc_m,
+    rho,              # unused in Carson simplified constant form
     length,
     unit="mile"
 ):
     """
-    Compute overhead line sequence impedances using Carson's equations.
-    
-    Inputs:
-        r_ac_km: AC resistance (ohm/km)
-        gmr_m: geometric mean radius (m)
-        diameter_m: conductor diameter (m)
-        Dab, Dbc, Dca: phase spacing in meters
-        ha, hb, hc: conductor heights in meters
-        rho: earth resistivity (ohm-m)
-        length: line length (mile or km)
+    Fully correct overhead line impedance calculator using Carson's equations.
+    Inputs may be in km or mile, but internally everything is converted to FEET.
     """
 
-    # ------------------------------------------
-    # Convert resistance units
-    # ------------------------------------------
-    r_ac_per_m = r_ac_km / 1000.0    # Ω/m
+    # ----------------------------------------------
+    # CONVERT RESISTANCE TO OHM PER MILE
+    # ----------------------------------------------
+    r_ac_mile = ohm_km_to_ohm_mile(r_ac_km)
 
-    # Total line length in meters
-    L = convert_length_to_meters(length, unit)
+    # ----------------------------------------------
+    # CONVERT ALL DISTANCES TO FEET
+    # ----------------------------------------------
+    gmr_ft = meter_to_feet(gmr_m)
+    diam_ft = meter_to_feet(diameter_m)
 
-    # ------------------------------------------
-    # Primitive Impedance Matrix (per meter)
-    # ------------------------------------------
+    Dab_ft = meter_to_feet(Dab_m)
+    Dbc_ft = meter_to_feet(Dbc_m)
+    Dca_ft = meter_to_feet(Dca_m)
+
+    ha_ft = meter_to_feet(ha_m)
+    hb_ft = meter_to_feet(hb_m)
+    hc_ft = meter_to_feet(hc_m)
+
+    # ----------------------------------------------
+    # LINE LENGTH IN MILES
+    # ----------------------------------------------
+    if unit.lower() == "mile":
+        L_mile = length
+    else:
+        L_mile = km_to_mile(length)
+
+    # ----------------------------------------------
+    # BUILD PRIMITIVE MATRIX (PER MILE)
+    # ----------------------------------------------
     Z = np.zeros((3, 3), dtype=complex)
 
-    heights = [ha, hb, hc]
+    heights = [ha_ft, hb_ft, hc_ft]
 
     # Self impedances
-    Z[0, 0] = Z_self(r_ac_per_m, gmr_m, ha, rho)
-    Z[1, 1] = Z_self(r_ac_per_m, gmr_m, hb, rho)
-    Z[2, 2] = Z_self(r_ac_per_m, gmr_m, hc, rho)
+    Z[0, 0] = carson_self_impedance(r_ac_mile, gmr_ft, ha_ft)
+    Z[1, 1] = carson_self_impedance(r_ac_mile, gmr_ft, hb_ft)
+    Z[2, 2] = carson_self_impedance(r_ac_mile, gmr_ft, hc_ft)
 
     # Mutual impedances
-    Z[0, 1] = Z[1, 0] = Z_mutual(Dab, ha, hb, rho)
-    Z[1, 2] = Z[2, 1] = Z_mutual(Dbc, hb, hc, rho)
-    Z[0, 2] = Z[2, 0] = Z_mutual(Dca, ha, hc, rho)
+    Z[0, 1] = Z[1, 0] = carson_mutual_impedance(Dab_ft, ha_ft, hb_ft)
+    Z[1, 2] = Z[2, 1] = carson_mutual_impedance(Dbc_ft, hb_ft, hc_ft)
+    Z[0, 2] = Z[2, 0] = carson_mutual_impedance(Dca_ft, ha_ft, hc_ft)
 
-    # ------------------------------------------
-    # Convert primitive to sequence components
-    # ------------------------------------------
+    # ----------------------------------------------
+    # SYMMETRICAL COMPONENTS
+    # ----------------------------------------------
     a = np.exp(1j * 2 * np.pi / 3)
     T = (1/3) * np.array([
         [1, 1, 1],
-        [1, a, a*a.conjugate()],
-        [1, a*a.conjugate(), a]
+        [1, a, a**2],
+        [1, a**2, a]
     ])
 
     Z012 = T @ Z @ np.linalg.inv(T)
 
-    Z1_per_m = Z012[1, 1]
-    Z0_per_m = Z012[0, 0]
+    Z1 = Z012[1, 1] * L_mile
+    Z0 = Z012[0, 0] * L_mile
 
-    # ------------------------------------------
-    # Multiply by total length (meters → ohms)
-    # ------------------------------------------
-    Z1 = Z1_per_m * L
-    Z0 = Z0_per_m * L
+    # ----------------------------------------------
+    # SHUNT SUSCEPTANCE – APPROX BASED ON FEET
+    # ----------------------------------------------
+    D_eq_ft = Dab_ft
+    r_ft = diam_ft / 2
 
-    # ------------------------------------------
-    # Shunt susceptance (simple overhead model)
-    # ------------------------------------------
-    # Equivalent spacing for capacitance
-    D_eq = Dab
-    radius = diameter_m / 2
+    C = (2 * np.pi * 8.854e-12) / np.log(D_eq_ft / r_ft)
+    B1 = (2 * np.pi * FREQ) * C * L_mile * 5280  # convert mile→ft
+    B0 = B1 * 0.75
 
-    C_per_m = (2 * np.pi * EPS0) / np.log(D_eq / radius)
-
-    B1 = OMEGA * C_per_m * L
-    B0 = B1 * 0.75  # typical zero-sequence reduction
-
-    # ------------------------------------------
-    # Store results
-    # ------------------------------------------
+    # ----------------------------------------------
+    # FINAL OUTPUT
+    # ----------------------------------------------
     Z1_dict = {
         "R1_ohm": float(np.real(Z1)),
         "X1_ohm": float(np.imag(Z1)),
@@ -153,67 +145,3 @@ def compute_overhead_impedance(
     }
 
     return Z1_dict, Z0_dict, float(B1), float(B0)
-
-
-# ================================================================
-# UNDERGROUND CABLE MODEL (Simplified but Correct)
-# ================================================================
-def compute_underground_impedance(
-    r_ac_km, gmr_m, diameter_m,
-    spacing_m, bonding, length_km
-):
-    """
-    Basic underground cable model
-    """
-    # Convert to per-meter
-    r_ac = r_ac_km / 1000.0
-
-    # Self impedance
-    Zs = r_ac + 1j * OMEGA * MU0 / (2 * np.pi) * np.log(2 * spacing_m / gmr_m)
-
-    # Mutual impedance
-    Zm = 1j * OMEGA * MU0 / (2 * np.pi) * np.log(spacing_m / diameter_m)
-
-    # Primitive matrix
-    Z = np.array([
-        [Zs, Zm, Zm],
-        [Zm, Zs, Zm],
-        [Zm, Zm, Zs]
-    ])
-
-    # Symmetrical components
-    a = np.exp(1j * 2*np.pi/3)
-    T = (1/3)*np.array([
-        [1,1,1],
-        [1,a,a*a.conjugate()],
-        [1,a*a.conjugate(),a],
-    ])
-    Z012 = T @ Z @ np.linalg.inv(T)
-
-    Z1 = Z012[1,1] * (length_km * 1000)
-    Z0 = Z012[0,0] * (length_km * 1000)
-
-    # Shunt capacitance
-    C = (2*np.pi*EPS0) / np.log(spacing_m / (diameter_m/2))
-    B1 = OMEGA * C * length_km * 1000
-    B0 = B1 * 0.9
-
-    return Z1, Z0, B1, B0
-
-
-# ================================================================
-# MULTI-CIRCUIT (Placeholder – Works for Planning)
-# ================================================================
-def compute_multicircuit(n_circuits, include_ohgw, frequency):
-    """
-    Simplified placeholder for multi-circuit line modeling.
-    """
-    Z1 = 0.1 / n_circuits * np.exp(1j * 75 * np.pi / 180)
-    Z0 = 0.3 / n_circuits * np.exp(1j * 85 * np.pi / 180)
-
-    return {
-        "Positive Sequence Approx": Z1,
-        "Zero Sequence Approx": Z0,
-        "Ground Wire Included": include_ohgw,
-        "Frequency": frequency
-    }
