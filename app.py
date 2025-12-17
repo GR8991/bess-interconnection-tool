@@ -16,7 +16,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Minimal hybrid CSS styling
 st.markdown("""
 <style>
     .main {background-color: #F8F9FB;}
@@ -78,26 +77,27 @@ if page == "Overhead Line Calculator":
         rho = st.number_input("Earth Resistivity (Ω·m)", value=100.0)
 
         if st.button("Compute Impedance"):
+
             df = load_basic_db()
             row = df[df["Name"] == conductor_type].iloc[0]
-            
+
+            # FIXED CALL — matching line_calc.py function signature
             Z1, Z0, B1, B0 = compute_overhead_impedance(
-            r_ac_km=row["R_AC_ohm_per_km"],
-            gmr_m=row["GMR_m"],
-            diameter_m=row["Diameter_m"],
-            Dab=Dab,
-            Dbc=Dbc,
-            Dca=Dca,
-            ha=ha,
-            hb=hb,
-            hc=hc,
-            rho=rho,
-            length=length_value,
-            unit=length_unit
+                r_ac_km=row["R_AC_ohm_per_km"],      # correct
+                gmr_m=row["GMR_m"],                 # correct
+                diameter_m=row["Diameter_m"],       # correct
+                Dab_m=Dab,                          # correct
+                Dbc_m=Dbc,                          # correct
+                Dca_m=Dca,                          # correct
+                ha_m=ha,                            # correct
+                hb_m=hb,                            # correct
+                hc_m=hc,                            # correct
+                rho=rho,                            # unused but required
+                length=length_value,                # correct
+                unit=length_unit                    # correct
             )
 
-
-            st.subheader("Results (Ohms & Per-Unit)")
+            st.subheader("Results (Ohms & Per Unit)")
 
             st.write("### Positive Sequence (Z1)")
             st.json(Z1)
@@ -244,5 +244,3 @@ elif page == "Export Results":
 
         if st.button("Export PDF"):
             export_pdf(df)
-
-
