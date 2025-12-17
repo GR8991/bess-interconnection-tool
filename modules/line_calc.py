@@ -126,7 +126,7 @@ def compute_overhead_impedance(
     }
 
     return Z1_dict, Z0_dict, float(B1), float(B0)
-return Z1_dict, Z0_dict, float(B1), float(B0)
+
 
 
 # ================================================================
