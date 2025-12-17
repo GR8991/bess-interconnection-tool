@@ -126,3 +126,14 @@ def compute_overhead_impedance(
     }
 
     return Z1_dict, Z0_dict, float(B1), float(B0)
+return Z1_dict, Z0_dict, float(B1), float(B0)
+
+
+# ================================================================
+# PLACEHOLDER FUNCTIONS (fixes import error in app.py)
+# ================================================================
+def compute_underground_impedance(*args, **kwargs):
+    return 0, 0, 0, 0
+
+def compute_multicircuit(*args, **kwargs):
+    return {"status": "placeholder - not implemented"}
