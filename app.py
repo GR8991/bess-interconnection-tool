@@ -1,5 +1,5 @@
 """
-Interconnection Impedance Too0l  -  Section 3 (Tie Line) & Section 5 (Collector)
+Interconnection Impedance Tool  -  Section 3 (Tie Line) & Section 5 (Collector)
 IEEE/ANSI methods: modified Carson's equations + WECC collector aggregation.
 
 Run:   pip install streamlit
