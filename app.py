@@ -1,5 +1,5 @@
 """
-Interconnection Impedance Tool  -  Section 3 (Tie Line) & Section 5 (Collector)
+Interconnection Impedance Too0l  -  Section 3 (Tie Line) & Section 5 (Collector)
 IEEE/ANSI methods: modified Carson's equations + WECC collector aggregation.
 
 Run:   pip install streamlit
@@ -8,7 +8,7 @@ Run:   pip install streamlit
 import streamlit as st
 import ieee_calc as ic
 
-st.set_page_config(page_title="GR_IBR Interconnection Impedance Tool", layout="wide")
+st.set_page_config(page_title="GIBR Interconnection Impedance Tool", layout="wide")
 
 M_PER_FT = 0.3048
 
