@@ -8,7 +8,7 @@ Run:   pip install streamlit
 import streamlit as st
 import ieee_calc as ic
 
-st.set_page_config(page_title="GIBR Interconnection Impedance Tool", layout="wide")
+st.set_page_config(page_title="GRIBR Interconnection Impedance Tool", layout="wide")
 
 M_PER_FT = 0.3048
 
